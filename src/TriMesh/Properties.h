@@ -5,10 +5,9 @@
 //== INCLUDES =================================================================
 
 
-#include <vector>
 #include <string>
-#include <algorithm>
 #include <typeinfo>
+#include <thrust/device_vector.h>
 
 
 //== NAMESPACE ================================================================
@@ -140,17 +139,6 @@ private:
     value_type value_;
 };
 
-
-// specialization for bool properties
-template<>
-inline const bool *
-PropertyArray<bool>::data() const {
-    assert(false);
-    return NULL;
-}
-
-
-
 //== CLASS DEFINITION =========================================================
 
 
@@ -163,7 +151,7 @@ public:
 
     friend class PropertyContainer;
 
-    friend class HedgeTriMesh;
+    friend class HEdgeTriMesh;
 
 
 public:
