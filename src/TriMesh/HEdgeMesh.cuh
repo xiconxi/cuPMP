@@ -53,11 +53,15 @@ struct HedgeConnectivity {
 };
 
 
-template<class Allocator>
-struct DeviceSurfaceMesh{
-    __host__ __device__ void Test();
+template <template <class...> class Allocator>
+struct SurfaceMesh{
+    __host__ __device__ void Test(){}
     Allocator<float3> V;
 };
+
+using HostSurfaceMesh = SurfaceMesh<thrust::host_vector>;
+using DeviceSurfaceMesh = SurfaceMesh<thrust::device_vector>;
+
 //
 //
 //class HEdgeTriMesh{

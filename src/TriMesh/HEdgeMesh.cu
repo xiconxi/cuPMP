@@ -6,8 +6,5 @@
 
 namespace cuPMP {
 
-void DeviceSurfaceMesh::Test() {
-
-}
 
 }
