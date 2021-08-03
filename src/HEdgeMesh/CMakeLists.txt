@@ -1,5 +1,5 @@
-file(GLOB SOURCES ./*.cu)
-file(GLOB HEADERS ./*.h)
+file(GLOB SOURCES ./*.cu )
+file(GLOB HEADERS ./**/*.h)
 
 add_library(cuPMP STATIC ${SOURCES} ${HEADERS})
 

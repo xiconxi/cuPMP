@@ -6,5 +6,9 @@
 
 namespace cuPMP {
 
+    void test() {
+        thrust::host_vector<float3> V;
+        V.reserve(10);
+    }
 
 }

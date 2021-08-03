@@ -5,13 +5,13 @@
 #ifndef CUTRI_HEDGEMESH_H
 #define CUTRI_HEDGEMESH_H
 
-#include <string>
+#include <c++/7/string>
 #include <cuda.h>
 #include <vector_types.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-#include "Properties.h"
+#include "HEdgeMesh/Backup/Properties.h"
 
 namespace cuPMP {
 #define NO_ID 0x7fffffff
@@ -39,28 +39,48 @@ struct Face : public Handle {
 };
 
 /// outgoing half edge (it will be a boundary one for boundary vertices)
-struct VertexConnectivity {
-    Hedge hedge_;
+struct VConnect {
+    Hedge    hedge_;
 };
-struct FaceConnectivity {
-    Hedge hedge_;
+struct FConnect {
+    static Hedge __device__ __host__ hedge(Face f) { return Hedge{f() * 3};}
 };
-struct HedgeConnectivity {
-    static Face __device__ __host__ face(Hedge h) { return Face{h() / 3}; }
-    static Hedge __device__ __host__ prev(Hedge h) {  return Hedge{h() / 3 * 3 + (h() % 3 + 2) % 3};}
-    static Hedge __device__ __host__ next(Hedge h) { return Hedge{h() / 3 * 3 + (h() % 3 + 1) % 3};}
-    Vertex vertex_;
+struct HConnect {
+    __device__ __host__ static Face face(Hedge h) { return Face{h() / 3}; }
+    __device__ __host__ static Hedge prev(Hedge h) {  return Hedge{h() / 3 * 3 + (h() % 3 + 2) % 3};}
+    __device__ __host__ static Hedge next(Hedge h) { return Hedge{h() / 3 * 3 + (h() % 3 + 1) % 3};}
+    __device__ __host__ Hedge twin() { return  twin_;}
+
+    Hedge   twin_;
+    Vertex  vertex_;
 };
 
-
-template <template <class...> class Allocator>
+template <template <class...> class Vector>
 struct SurfaceMesh{
-    __host__ __device__ void Test(){}
-    Allocator<float3> V;
+    Vector<float3>      v_pos;
+    Vector<VConnect>    v_conn_;
+    Vector<HConnect>    h_conn_;
+    Vector<uint32_t>    v_flag_;
+    Vector<uint32_t>    f_flag_;
+
+    enum class FLAG{
+        DELETE = 0x01,
+        DIRTY  = 0x02,
+        LOCKED = 0x04,
+    };
+
+    __host__ __device__ void reserve(uint32_t n_v, uint32_t n_f) {
+        v_conn_.reserve(n_v);
+        v_flag_.reserve(n_v);
+        h_conn_.reserve(n_f * 3);
+        f_flag_.reserve(n_f);
+    }
+
 };
 
-using HostSurfaceMesh = SurfaceMesh<thrust::host_vector>;
-using DeviceSurfaceMesh = SurfaceMesh<thrust::device_vector>;
+using HostMesh      = SurfaceMesh<thrust::host_vector>;
+using DeviceMesh    = SurfaceMesh<thrust::device_vector>;
+
 
 //
 //

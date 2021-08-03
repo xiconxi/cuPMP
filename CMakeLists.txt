@@ -20,6 +20,8 @@ if(WIN32)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_MATH_DEFINES")
 endif()
 
-add_subdirectory(src/TriMesh)
+include_directories(src)
+
+add_subdirectory(src/HEdgeMesh)
 #add_subdirectory(doc)
-#add_subdirectory(examples)
+add_subdirectory(examples)
