@@ -63,7 +63,9 @@ struct SurfaceMesh{
     Vector<uint32_t>    f_flag_;
 
     enum class FLAG{ DELETE = 0x01, DIRTY  = 0x02, LOCKED = 0x04, IS_B = 0x08};
-
+    __host__ uint32_t n_faces() const { return f_flag_.size(); }
+    __host__ uint32_t n_hedges() const { return h_conn_.size(); }
+    __host__ uint32_t n_vertices() const { return v_flag_.size(); }
     __host__ void reserve(uint32_t n_v, uint32_t n_f) {
         v_conn_.reserve(n_v);
         v_position_.reserve(n_v);
