@@ -22,22 +22,13 @@ namespace cuPMP{
         unsigned int nV, nF, nE;
         float3 p, n, c;
         float2 t;
-        Surface_mesh::Vertex v;
-
-        // properties
-        Surface_mesh::Vertex_property <Normal> normals;
-        Surface_mesh::Vertex_property <Texture_coordinate> texcoords;
-        Surface_mesh::Vertex_property <Color> colors;
-        if (has_normals) normals = mesh.vertex_property<Normal>("v:normal");
-        if (has_texcoords) texcoords = mesh.vertex_property<Texture_coordinate>("v:texcoord");
-        if (has_colors) colors = mesh.vertex_property<Color>("v:color");
-
+        Vertex v;
+        Face   f;
 
         // #Vertice, #Faces, #Edges
         items = fscanf(in, "%d %d %d\n", (int *) &nV, (int *) &nF, (int *) &nE);
         mesh.clear();
-        mesh.reserve(nV, std::max(3 * nV, nE), nF);
-
+        mesh.reserve(nV, nF);
 
         // read vertices: pos [normal] [color] [texcoord]
         for (i = 0; i < nV && !feof(in); ++i) {
@@ -46,130 +37,125 @@ namespace cuPMP{
             lp = line;
 
             // position
-            items = sscanf(lp, "%f %f %f%n", &p[0], &p[1], &p[2], &nc);
+            items = sscanf(lp, "%f %f %f%n", &p.x, &p.y, &p.z, &nc);
             assert(items == 3);
-            v = mesh.add_vertex((Point) p);
+            v = mesh.add_vertex( p);
             lp += nc;
 
             // normal
-            if (has_normals) {
-                if (sscanf(lp, "%f %f %f%n", &n[0], &n[1], &n[2], &nc) == 3) {
-                    normals[v] = n;
-                }
-                lp += nc;
-            }
+//            if (has_normals) {
+//                if (sscanf(lp, "%f %f %f%n", &n.x, &n.y, &n.z, &nc) == 3) {
+//                    normals[v] = n;
+//                }
+//                lp += nc;
+//            }
 
             // color
-            if (has_colors) {
-                if (sscanf(lp, "%f %f %f%n", &c[0], &c[1], &c[2], &nc) == 3) {
-                    if (c[0] > 1.0f || c[1] > 1.0f || c[2] > 1.0f) c *= (1.0 / 255.0);
-                    colors[v] = c;
-                }
-                lp += nc;
-            }
+//            if (has_colors) {
+//                if (sscanf(lp, "%f %f %f%n", &c.x, &c.y, &c.z, &nc) == 3) {
+//                    if (c.x > 1.0f || c.y > 1.0f || c.z > 1.0f) c *= (1.0 / 255.0);
+//                    colors[v] = c;
+//                }
+//                lp += nc;
+//            }
 
             // tex coord
-            if (has_texcoords) {
-                items = sscanf(lp, "%f %f%n", &t[0], &t[1], &nc);
-                assert(items == 2);
-                texcoords[v][0] = t[0];
-                texcoords[v][1] = t[1];
-                lp += nc;
-            }
+//            if (has_texcoords) {
+//                items = sscanf(lp, "%f %f%n", &t.x, &t.y, &nc);
+//                assert(items == 2);
+//                texcoords[v].x = t.x;
+//                texcoords[v].y = t.y;
+//                lp += nc;
+//            }
         }
-
-
-
-        // read faces: #N v[1] v[2] ... v[n-1]
-        std::vector<Surface_mesh::Vertex> vertices;
+        
+        // read faces: #N v.y v.z ... v[n-1]
+        std::vector<Vertex> vertices;
         for (i = 0; i < nF; ++i) {
             // read line
             lp = fgets(line, 200, in);
             lp = line;
-
             // #vertices
             items = sscanf(lp, "%d%n", (int *) &nV, &nc);
             assert(items == 1);
             vertices.resize(nV);
             lp += nc;
-
             // indices
             for (j = 0; j < nV; ++j) {
                 items = sscanf(lp, "%d%n", (int *) &idx, &nc);
                 assert(items == 1);
-                vertices[j] = Surface_mesh::Vertex(idx);
+                vertices[j] = Vertex(idx);
                 lp += nc;
             }
-            mesh.add_face(vertices);
+            assert(vertices.size() == 3);
+            mesh.add_triangle(vertices[0], vertices[1], vertices[2]);
         }
-
-
         return true;
     }
 
-    bool read_off_binary(HostMesh &mesh, FILE *in, bool has_normals, bool has_texcoords, bool has_colors) {
-        unsigned int i, j, idx;
-        unsigned int nV, nF, nE;
-        float3 p, n, c;
-        float2 t;
-        Surface_mesh::Vertex v;
-
-
-        // binary cannot (yet) read colors
-        if (has_colors) return false;
-
-
-        // properties
-        Surface_mesh::Vertex_property <Normal> normals;
-        Surface_mesh::Vertex_property <Texture_coordinate> texcoords;
-        if (has_normals) normals = mesh.vertex_property<Normal>("v:normal");
-        if (has_texcoords) texcoords = mesh.vertex_property<Texture_coordinate>("v:texcoord");
-
-
-        // #Vertice, #Faces, #Edges
-        read(in, nV);
-        read(in, nF);
-        read(in, nE);
-        mesh.clear();
-        mesh.reserve(nV, std::max(3 * nV, nE), nF);
-
-
-        // read vertices: pos [normal] [color] [texcoord]
-        for (i = 0; i < nV && !feof(in); ++i) {
-            // position
-            read(in, p);
-            v = mesh.add_vertex((Point) p);
-
-            // normal
-            if (has_normals) {
-                read(in, n);
-                normals[v] = n;
-            }
-
-            // tex coord
-            if (has_texcoords) {
-                read(in, t);
-                texcoords[v][0] = t[0];
-                texcoords[v][1] = t[1];
-            }
-        }
-
-
-        // read faces: #N v[1] v[2] ... v[n-1]
-        std::vector<Surface_mesh::Vertex> vertices;
-        for (i = 0; i < nF; ++i) {
-            read(in, nV);
-            vertices.resize(nV);
-            for (j = 0; j < nV; ++j) {
-                read(in, idx);
-                vertices[j] = Surface_mesh::Vertex(idx);
-            }
-            mesh.add_face(vertices);
-        }
-
-
-        return true;
-    }
+//    bool read_off_binary(HostMesh &mesh, FILE *in, bool has_normals, bool has_texcoords, bool has_colors) {
+//        unsigned int i, j, idx;
+//        unsigned int nV, nF, nE;
+//        float3 p, n, c;
+//        float2 t;
+//        Surface_mesh::Vertex v;
+//
+//
+//        // binary cannot (yet) read colors
+//        if (has_colors) return false;
+//
+//
+//        // properties
+//        Surface_mesh::Vertex_property <Normal> normals;
+//        Surface_mesh::Vertex_property <Texture_coordinate> texcoords;
+//        if (has_normals) normals = mesh.vertex_property<Normal>("v:normal");
+//        if (has_texcoords) texcoords = mesh.vertex_property<Texture_coordinate>("v:texcoord");
+//
+//
+//        // #Vertice, #Faces, #Edges
+//        read(in, nV);
+//        read(in, nF);
+//        read(in, nE);
+//        mesh.clear();
+//        mesh.reserve(nV, std::max(3 * nV, nE), nF);
+//
+//
+//        // read vertices: pos [normal] [color] [texcoord]
+//        for (i = 0; i < nV && !feof(in); ++i) {
+//            // position
+//            read(in, p);
+//            v = mesh.add_vertex((Point) p);
+//
+//            // normal
+//            if (has_normals) {
+//                read(in, n);
+//                normals[v] = n;
+//            }
+//
+//            // tex coord
+//            if (has_texcoords) {
+//                read(in, t);
+//                texcoords[v].x = t.x;
+//                texcoords[v].y = t.y;
+//            }
+//        }
+//
+//
+//        // read faces: #N v.y v.z ... v[n-1]
+//        std::vector<Surface_mesh::Vertex> vertices;
+//        for (i = 0; i < nF; ++i) {
+//            read(in, nV);
+//            vertices.resize(nV);
+//            for (j = 0; j < nV; ++j) {
+//                read(in, idx);
+//                vertices[j] = Surface_mesh::Vertex(idx);
+//            }
+//            mesh.add_face(vertices);
+//        }
+//
+//
+//        return true;
+//    }
 
     bool read_off(HostMesh &mesh, const std::string &filename) {
         char line[200];
@@ -220,7 +206,8 @@ namespace cuPMP{
 
         // read as ASCII or binary
         bool ok = (is_binary ?
-                read_off_binary(mesh, in, has_normals, has_texcoords, has_colors) :
+                true:
+//                read_off_binary(mesh, in, has_normals, has_texcoords, has_colors) :
                 read_off_ascii(mesh, in, has_normals, has_texcoords, has_colors));
 
 
