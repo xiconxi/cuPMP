@@ -14,7 +14,6 @@ namespace cuPMP{
         return err;
     }
 
-
     bool read_off_ascii(HostMesh &mesh, FILE *in, bool has_normals,  bool has_texcoords, bool has_colors) {
         char line[200], *lp;
         int nc;
@@ -93,39 +92,32 @@ namespace cuPMP{
         return true;
     }
 
-//    bool read_off_binary(HostMesh &mesh, FILE *in, bool has_normals, bool has_texcoords, bool has_colors) {
-//        unsigned int i, j, idx;
-//        unsigned int nV, nF, nE;
-//        float3 p, n, c;
-//        float2 t;
-//        Surface_mesh::Vertex v;
-//
-//
-//        // binary cannot (yet) read colors
+    bool read_off_binary(HostMesh &mesh, FILE *in, bool has_normals, bool has_texcoords, bool has_colors) {
+        unsigned int i, j, idx;
+        unsigned int nV, nF, nE;
+        float3 p, n, c;
+        float2 t;
+        Vertex v;
+
+
+        // binary cannot (yet) read colors
 //        if (has_colors) return false;
-//
-//
-//        // properties
-//        Surface_mesh::Vertex_property <Normal> normals;
-//        Surface_mesh::Vertex_property <Texture_coordinate> texcoords;
-//        if (has_normals) normals = mesh.vertex_property<Normal>("v:normal");
-//        if (has_texcoords) texcoords = mesh.vertex_property<Texture_coordinate>("v:texcoord");
-//
-//
-//        // #Vertice, #Faces, #Edges
-//        read(in, nV);
-//        read(in, nF);
-//        read(in, nE);
-//        mesh.clear();
-//        mesh.reserve(nV, std::max(3 * nV, nE), nF);
-//
-//
-//        // read vertices: pos [normal] [color] [texcoord]
-//        for (i = 0; i < nV && !feof(in); ++i) {
-//            // position
-//            read(in, p);
-//            v = mesh.add_vertex((Point) p);
-//
+
+
+        // #Vertice, #Faces, #Edges
+        read(in, nV);
+        read(in, nF);
+        read(in, nE);
+        mesh.clear();
+        mesh.reserve(nV, nF);
+
+
+        // read vertices: pos [normal] [color] [texcoord]
+        for (i = 0; i < nV && !feof(in); ++i) {
+            // position
+            read(in, p);
+            v = mesh.add_vertex(p);
+
 //            // normal
 //            if (has_normals) {
 //                read(in, n);
@@ -138,24 +130,23 @@ namespace cuPMP{
 //                texcoords[v].x = t.x;
 //                texcoords[v].y = t.y;
 //            }
-//        }
-//
-//
-//        // read faces: #N v.y v.z ... v[n-1]
-//        std::vector<Surface_mesh::Vertex> vertices;
-//        for (i = 0; i < nF; ++i) {
-//            read(in, nV);
-//            vertices.resize(nV);
-//            for (j = 0; j < nV; ++j) {
-//                read(in, idx);
-//                vertices[j] = Surface_mesh::Vertex(idx);
-//            }
-//            mesh.add_face(vertices);
-//        }
-//
-//
-//        return true;
-//    }
+        }
+
+        // read faces: #N v.y v.z ... v[n-1]
+        std::vector<Vertex> vertices;
+        for (i = 0; i < nF; ++i) {
+            read(in, nV);
+            vertices.resize(nV);
+            for (j = 0; j < nV; ++j) {
+                read(in, idx);
+                vertices[j] = Vertex(idx);
+            }
+            assert(vertices.size() == 3);
+            mesh.add_triangle(vertices[0], vertices[1], vertices[2]);
+        }
+
+        return true;
+    }
 
     bool read_off(HostMesh &mesh, const std::string &filename) {
         char line[200];
@@ -206,13 +197,36 @@ namespace cuPMP{
 
         // read as ASCII or binary
         bool ok = (is_binary ?
-                true:
-//                read_off_binary(mesh, in, has_normals, has_texcoords, has_colors) :
+//                true:
+                read_off_binary(mesh, in, has_normals, has_texcoords, has_colors) :
                 read_off_ascii(mesh, in, has_normals, has_texcoords, has_colors));
 
 
         fclose(in);
         return ok;
+    }
+
+    bool write_off(const HostMesh& mesh, const std::string& filename)
+    {
+        FILE* out = fopen(filename.c_str(), "w");
+        if (!out)
+            return false;
+
+        fprintf(out, "OFF\n%d %d 0\n", mesh.n_vertices(), mesh.n_faces());
+        for(size_t i = 0; i < mesh.n_vertices(); i++) {
+            const float3& p = mesh.v_position_[i];
+            fprintf(out, "%.10f %.10f %.10f", p.x, p.y, p.z);
+            fprintf(out, "\n");
+        }
+
+        auto &hcon = mesh.h_conn_;
+        for(size_t i = 0; i < mesh.n_hedges(); i += 3) {
+            fprintf(out, "3 %d %d %d", hcon[i].vertex_.i(), hcon[i+1].vertex_.i(), hcon[i+2].vertex_.i());
+            fprintf(out, "\n");
+        }
+
+        fclose(out);
+        return true;
     }
 
 }

@@ -1,6 +1,6 @@
 include_directories(../src/)
 
-add_executable(HEdgeMeshIO HEdgeMeshIO.cu)
+add_executable(HEdgeMeshIO HEdgeMeshIO.cpp)
 target_link_libraries(HEdgeMeshIO cuPMP)
 
 #if(WITH_EXAMPLES)
